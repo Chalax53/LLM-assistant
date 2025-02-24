@@ -5,152 +5,83 @@ import os
 from models.id_record import IDRecord
 from models.cuenta_record import CuentaRecord
 from services.ocr_service import OCRService
-from services.localOCRService import IDOCRProcessor
+from services.localOCRService import OCRTextProcessor
+from flask import current_app
+from functools import wraps
 
-# APIS
-class IDProcessing(Resource):
-    def __init__(self, upload_folder):
-        self.upload_folder = upload_folder
-        
-    def post(self):
+# CONTROLLER
+
+#
+# Ensures correct file is received
+#
+def require_file(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
         if 'file' not in request.files:
             return {'error': 'No file provided'}, 400
-            
         file = request.files['file']
         if file.filename == '':
             return {'error': 'No file selected'}, 400
-            
-        if file and self._allowed_file(file.filename):
-            # Process the file directly from the request
-            info = OCRService.extract_info_from_image(file)
-            if not info:
-                return {'error': 'Failed to process image after info = OCRService.extract_info_from_image(file) in id_routes.py'}, 500
-            
-            record = IDRecord(
-                full_name=info['full_name'],
-                address=info['address'],
-                #id_image_path=file.filename  # Save filename or URL if you need. No need for now i guess
-            )
-            record_id = record.save()
-            
-            return {
-                'message': 'ID processed successfully',
-                'record_id': record_id,
-                'data': info
-            }, 201
-            
-        return {'error': 'Invalid file type'}, 400
-    
-    def _allowed_file(self, filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg'}
+        return f(*args, **kwargs)
+    return decorated
 
-#Process Estado de Cta
-class EstadoDeCuentaProcessing(Resource):
-    def __init__(self, upload_folder):
-        self.upload_folder = upload_folder
-        
+
+#
+# Parses text from ID photo and returns JSON with full_name and address
+# Stores data in DB
+#
+class ParseIDPhoto(Resource):
+    ALLOWED_EXTENSIONS = {'jpeg', 'jpg'}
+
+    @require_file
     def post(self):
-        if 'file' not in request.files:
-            return {'error': 'No file provided'}, 400
-            
         file = request.files['file']
-        if file.filename == '':
-            return {'error': 'No file selected'}, 400
+        if not self._allowed_file(file.filename):
+            return {'error': 'Invalid file type'}, 400
             
-        if file and self._allowed_file(file.filename):
-            # Process the file directly from the request
-            info = OCRService.extract_info_from_estado_cuenta(file)
-            if not info:
-                return {'error': 'Failed to process image after info = OCRService.extract_info_from_image(file) in id_routes.py'}, 500
+        try:
+            info = OCRTextProcessor.extractIDData(file)
+        except Exception as e:
+            current_app.logger.error(f"Error processing file: {str(e)}")
+            return {'error': 'Failed to process image after Service'}, 500
             
-            estadoCuenta = CuentaRecord(
-                full_name=info['full_name'],
-                address=info['address'],
-                fecha_corte=['fecha_corte']
-            )
-            estado_id = estadoCuenta.save()
-            
-            # This return is what we see on postman as a response.
-            return {
-                'message': 'Estado de Cuenta processed successfully',
-                'estadoCuenta_id': estado_id,
-                'data': info
-            }, 201
-        
-        return {'error': 'Invalid file type'}, 400
-    
+        return {
+            'message': 'ID Photo processed successfully',
+            'data': info
+        }, 201
+
     def _allowed_file(self, filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg'}
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
 
-#Processes photo and returns relevant data
-class IDLocalProcessing(Resource):  
+#
+# Parses and stores estado de cuenta Name and Date in DB.
+# Returns name and date
+#
+class ParseEdoCtaPDF(Resource):
+    ALLOWED_EXTENSIONS = {'pdf'}
+
+    @require_file
     def post(self):
-        if 'file' not in request.files:
-            return {'error': 'No file provided'}, 400
-            
         file = request.files['file']
-        if file.filename == '':
-            return {'error': 'No file selected'}, 400
+        if not self._allowed_file(file.filename):
+            return {'error': 'Invalid file type'}, 400
             
-        if file and self._allowed_file(file.filename):
-            # Process the file directly from the request
-            info = OCRService.extractInfoLocally(file)
-            if not info:
-                return {'error': 'Failed to process image after info = OCRService.extractInfoLocally(file) in id_routes.py'}, 500
+        try:
+            info = OCRTextProcessor.extractEdoCtaData(file)
+        except Exception as e:
+            current_app.logger.error(f"Error processing file: {str(e)}")
+            return {'error': 'Failed to process image after Service'}, 500
             
-            # estadoCuenta = CuentaRecord(
-            #     full_name=info['full_name'],
-            #     address=info['address'],
-            #     fecha_corte=['fecha_corte']
-            # )
-            # estado_id = estadoCuenta.save()
-            
-            # This return is what we see on postman as a response.
-            return {
-                'message': 'Estado de Cuenta processed successfully',
-                #'estadoCuenta_id': estado_id,
-                'data': info
-            }, 201
-            
-        return {'error': 'Invalid file type'}, 400
+        return {
+            'message': 'Estado de Cuenta processed successfully',
+            'data': info
+        }, 201
     
     def _allowed_file(self, filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg'}
-
-
-class IDLocalProcessingV2(Resource):  
-    def post(self):
-        if 'file' not in request.files:
-            return {'error': 'No file provided'}, 400
-            
-        file = request.files['file']
-        if file.filename == '':
-            return {'error': 'No file selected'}, 400
-            
-        if file and self._allowed_file(file.filename):
-            # Process the file directly from the request
-            info = IDOCRProcessor.extractInfoLocally(file)
-            if not info:
-                return {'error': 'Failed to process image after info = OCRService.extractInfoLocally(file) in id_routes.py'}, 500
-            
-            full_name = f"{info['first_names']} {info['last_names']}".strip()
-            idRecord = IDRecord(
-                full_name=full_name,
-                address=info['address']
-            )
-            idRecord.save()
-            
-            # This return is what we see on postman as a response.
-            return {
-                'message': 'ID processed successfully',
-                'data': info
-            }, 201
-            
-        return {'error': 'Invalid file type'}, 400
-    
-    def _allowed_file(self, filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg'}
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
 
 #GETS ALL
