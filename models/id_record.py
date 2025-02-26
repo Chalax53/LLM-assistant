@@ -25,6 +25,25 @@ class IDRecord:
             print(f"Error saving record: {e}")
             return None
 
+    def get_last_entry(self):
+        try:
+            connection = self.db.get_connection()
+            cursor = connection.cursor(dictionary=True)
+
+            query = """
+                SELECT * FROM id_records
+                ORDER BY record_id DESC
+                LIMIT 1
+            """
+            
+            cursor.execute(query)
+            result = cursor.fetchone()
+            return result
+        except Error as e:
+            print(f"Error retrieving last entry: {e}")
+            return None
+
+
     @staticmethod
     def get_by_id(record_id):
         try:

@@ -72,28 +72,45 @@ class OCRTextProcessor:
 
     #
     # Uses pdfplumber to read data from Estado de Cuenta in PDF format.
+    # checks if the last entry on the names database is found in the PDF.
     #
-    def extractEdoCtaData(file):
+    # Returns boolean
+    #
+    def extract_name_from_EdoCta(file):
+
+        # Pull last name added to DB
+        idRecord = IDRecord()
+        last_entry = idRecord.get_last_entry()
+        full_name = last_entry['full_name']
+
+        # Read text from PDF
         with pdfplumber.open(file) as pdf:
             text = ""
             for page in pdf.pages:
                 text += page.extract_text()
                 print(text)
-                
-            # With Regex, extract relevant data from all parsed text
-            date_pattern = r'\d{1,2}/\d{1,2}/\d{2,4}'
-            address_pattern = r'\d+\s+[A-Za-z\s,]+\s+[A-Z]{2}\s+\d{5}'
+
+        # Create regex pattern to search for the full name in all caps
+        # This handles extra spaces, line breaks, and ensures it's in all caps
+        pattern = r'\b' + re.escape(full_name.upper()) + r'\b'
+        
+        # Search for the pattern in the text
+        match = re.search(pattern, text)
+
+        if match:
+            print(f"Found '{full_name}' in all caps in the PDF")
+            return True
+        else:
+            # Try a more flexible search that accounts for potential OCR issues
+            # This pattern allows for extra spaces between words and characters
+            words = full_name.upper().split()
+            flexible_pattern = r'\s*'.join([r'\b' + re.escape(word) + r'\b' for word in words])
+            flexible_match = re.search(flexible_pattern, text)
             
-            dates = re.findall(date_pattern, text)
-            addresses = re.findall(address_pattern, text)
-            print("======RELEVANT DATA=======")
-            print(dates)
-            print(addresses)
-
-            #TODO: Create a repository to handle DB interactions and store data in DB.
-
-            return {
-                'dates': dates,
-                'addresses': addresses
-            }
-
+            if flexible_match:
+                print(f"Found '{full_name}' with some formatting variations in the PDF")
+                return True
+            else:
+                print(f"Could not find '{full_name}' in the PDF")
+                return False    
+    

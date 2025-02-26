@@ -69,7 +69,7 @@ class ParseEdoCtaPDF(Resource):
             return {'error': 'Invalid file type'}, 400
             
         try:
-            info = OCRTextProcessor.extractEdoCtaData(file)
+            info = OCRTextProcessor.extract_name_from_EdoCta(file)
         except Exception as e:
             current_app.logger.error(f"Error processing file: {str(e)}")
             return {'error': 'Failed to process image after Service'}, 500
