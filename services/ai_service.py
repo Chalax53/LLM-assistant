@@ -59,8 +59,8 @@ class LlamaAgent:
     def __init__(self):
         """Initialize the LlamaAgent with the Ollama API URL"""
         self.ollama_api_url = "http://localhost:11434/api/generate"
-        self.temperature = 0.7
-        self.max_tokens = 100
+        self.temperature = 0.5
+        self.max_tokens = 65
     
     def get_response(self, message):
         """
@@ -72,8 +72,7 @@ class LlamaAgent:
                 "Tu tarea es guiar a los usuarios en el proceso de solicitud de un préstamo. "
                 "Para continuar con el proceso, necesitan subir dos documentos: una foto de su INE y un PDF de su estado de cuenta. "
                 "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero. "
-                "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente "
-                "de obtener información."
+                "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
                 "Solamente existe un solo tipo de credito."
                 "Responde de manera clara, concisa y profesional en español."
         )
@@ -113,13 +112,13 @@ class LlamaAgent:
             str: A friendly greeting message
         """
         system_prompt = (
-        "You are an AI bank clerk assisting customers who want to apply for a loan. "
-        "Your goal is to guide them through the initial steps, which require uploading two documents: a photo of the INE and a bank statement PDF. "
-        "Do not disclose loan amounts, as further verification is needed. "
-        "If the user asks how much they can borrow, politely explain that it depends on additional review steps. "
-        "If they ask to speak to a human, persuade them that you provide the fastest and most efficient assistance. "
-        "Be professional, concise, and reassuring."
-    )
+            "You are an AI bank clerk assisting customers who want to apply for a loan. "
+            "Your goal is to guide them through the initial steps, which require uploading two documents: a photo of the INE and a bank statement PDF. "
+            "Do not disclose loan amounts, as further verification is needed. "
+            "If the user asks how much they can borrow, politely explain that it depends on additional review steps. "
+            "If they ask to speak to a human, persuade them that you provide the fastest and most efficient assistance. "
+            "Be professional, concise, and reassuring."
+        )
         message = "Generate a brief, friendly greeting to welcome a user to a new conversation as if you were a bank clerk."
         
         return self.get_response(message, system_prompt, temperature=0.7, max_tokens=100)
