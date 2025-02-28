@@ -15,32 +15,9 @@ def create_app():
     @app.teardown_appcontext
     def cleanup(exception=None):
         db.close()
-        
-    
-    api.add_resource(
-        GetAllRecords, "/get-all-records"
-    )
 
-    api.add_resource(
-        ParseIDPhoto,
-        "/process-id"
-    )
-
-    api.add_resource(
-        ParseEdoCtaPDF,
-        "/process-edocta"
-    )
-
-    api.add_resource(
-        ChatWithLlama,
-        "/chat"
-    )
-
-    api.add_resource(
-        InitialGreeting,
-        "/ai-greet"
-    )
-
+    api.add_resource(ChatWithLlama, "/chat")
+    api.add_resource( InitialGreeting, "/ai-greet")
     api.add_resource(UploadFile, "/upload-file")
 
     return app

@@ -5,9 +5,7 @@ import pdfplumber
 import re
 from models.id_record import IDRecord
 
-#
-# Parses files and creates JSON with relevant data
-#
+
 class OCRTextProcessor:
     @staticmethod
     def load_names_from_file(filename):
@@ -52,11 +50,11 @@ class OCRTextProcessor:
                 
                 #create idRecord object, populate it and store it in db.
                 #TODO: Create a repository to handle DB interactions.
-                idRecord = IDRecord(
-                    full_name=full_name,
-                    address=address_section
-                )
-                idRecord.save()
+                # idRecord = IDRecord(
+                #     full_name=full_name,
+                #     address=address_section
+                # )
+                # idRecord.save()
 
                 return {
                     "first_names": found_first_name,
@@ -90,11 +88,8 @@ class OCRTextProcessor:
                 text += page.extract_text()
                 print(text)
 
-        # Create regex pattern to search for the full name in all caps
-        # This handles extra spaces, line breaks, and ensures it's in all caps
         pattern = r'\b' + re.escape(full_name.upper()) + r'\b'
         
-        # Search for the pattern in the text
         match = re.search(pattern, text)
 
         if match:
@@ -102,7 +97,6 @@ class OCRTextProcessor:
             return True
         else:
             # Try a more flexible search that accounts for potential OCR issues
-            # This pattern allows for extra spaces between words and characters
             words = full_name.upper().split()
             flexible_pattern = r'\s*'.join([r'\b' + re.escape(word) + r'\b' for word in words])
             flexible_match = re.search(flexible_pattern, text)
