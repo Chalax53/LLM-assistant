@@ -5,6 +5,10 @@ from flask import current_app
 import requests
 import json
 from services.file_tracker import FileTracker
+from ollama import chat
+from ollama import Client
+import logging
+
 
 # Load environment variables
 load_dotenv()
@@ -62,7 +66,7 @@ class LlamaAgent:
         """Initialize the LlamaAgent with the Ollama API URL"""
         self.ollama_api_url = "http://localhost:11434/api/generate"
         self.temperature = 0.1
-        self.max_tokens = 65
+        self.max_tokens = 50
     
     def get_response(self, message, custom_system_prompt=None):
         """
@@ -85,7 +89,7 @@ class LlamaAgent:
                 "prompt": message,
                 "system": system_prompt,
                 "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
+                "max_length": 50,
                 "stream": False
             }
             
@@ -122,7 +126,7 @@ class LlamaAgent:
 
 
 
-    def generate_file_status_message(self):
+    def generate_file_status_message(self, client_name=None):
         """
         Generate a specific message about the current file upload status
         
@@ -135,15 +139,15 @@ class LlamaAgent:
         
         # Create a context prompt based on file status
         if has_jpg and has_pdf:
-            context = f"""El cliente ha subido exitosamente tanto su identificación 
-                como su estado de cuenta. Su solicitud está completa y lista para ser revizada por el equipo.
-                Hazle saber que un representante del banco se pondra en contacto con el prontamente."""
+            context = f"""El {client_name} cliente ha subido su identificación y su estado de cuenta.
+                Su solicitud está completa y lista para ser revizada por un experto de nuestro equipo.
+                Hazle saber que un representante del banco se pondra en contacto con el pronto."""
         elif has_jpg:
-            context = f"""El cliente ha subido su identificación, pero aún 
-                falta su estado de cuenta para completar su solicitud. Dile que por favor suba su Estado de Cuenta"""
+            context = f"""El {client_name} cliente ha subido su identificación, menciona que solo falta subir 
+                su estado de cuenta para completar su solicitud."""
         elif has_pdf:
-            context = f"""El cliente ha subido su estado de cuenta, pero aún falta su 
-                identificación INE para completar su solicitud. Pidele por favor que suba una foto de su INE."""
+            context = f"""El cliente {client_name} ha subido su estado de cuenta, pero aún falta su 
+                INE para completar su solicitud."""
         else:
             context = f"""El cliente aún no ha subido ningún documento. Se requiere fotografia de su
                 identificación y suarchivo de su estado de cuenta."""
@@ -153,6 +157,7 @@ class LlamaAgent:
             "Tu trabajo es informarle al cliente sobre el estado de los documentos que ha subido para su solicitud. "
             "Sé cordial, claro y específico sobre qué documentos se han recibido y cuáles faltan por subir."
             "No agregues información adicional que no esté relacionada con el estado de los documentos."
+            "No des instrucciones de cómo subir los documentos."
             "No felicites al cliente. Tu personalidad es de un agente serio y profesional."
             "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero. "
             "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
@@ -164,20 +169,6 @@ class LlamaAgent:
         
         return self.get_response(message, custom_system_prompt=system_prompt)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     
     def initial_greeting(self):
         """
@@ -187,13 +178,140 @@ class LlamaAgent:
             str: A friendly greeting message
         """
         system_prompt = (
-            "You are an AI bank clerk assisting customers who want to apply for a loan. "
-            "Your goal is to guide them through the initial steps, which require uploading two documents: a photo of the INE and a bank statement PDF. "
-            "Do not disclose loan amounts, as further verification is needed. "
-            "If the user asks how much they can borrow, politely explain that it depends on additional review steps. "
-            "If they ask to speak to a human, persuade them that you provide the fastest and most efficient assistance. "
-            "Be professional, concise, and reassuring."
+            "Eres un asistente que trabaja como empleado del banco BanBajio. "
+            "El cliente acaba de entrar a una plática contigo y debes decirle 'buen día.'"
+            "Mencionale al cliente que estás aqui para ayudarle a llevar a cabo el primer paso para aplicar para un crédito empresarial."
+            "No agregues información adicional que no esté relacionada con la aplicación a un crédito."
+            "No des instrucciones, tu primer mensaje debe de ser de bienvenida y que puedes ayduar para aplicar para un crédito."
+            "No felicites al cliente. Tu personalidad es de un agente serio y profesional."
+            "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero."
+            "Si te dice que quiere una cantidad de dinero, menciona que lo primero es llevar a cabo el proceso de aplicación."
+            "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
+            "Solamente existe un solo tipo de credito."
+            "Responde de manera clara, concisa y profesional en español."
+            "Manten tus mensajes en menos de 100 caracteres."
         )
-        message = "Generate a brief, friendly greeting to welcome a user to a new conversation as if you were a bank clerk."
+        message = "Dale la bienvenida al cliente, menciona que estas aqui para ayudarle a aplicar a un crédito empresarial."
         
-        return self.get_response(message, system_prompt, temperature=0.7, max_tokens=100)
+        return self.get_response(message, system_prompt)
+    
+
+
+class Ollama:
+    def __init__(self, host="http://localhost:11434", temperature=0.1):
+        self.client = Client(host=host)
+        self.temperature = temperature
+        
+    def get_responseV2(self, message, custom_system_prompt=None):
+        """
+        Gets a response from the Llama 3.1 model using Ollama library
+        """
+        try:
+            # Use default system prompt if no custom prompt is provided
+            system_prompt = custom_system_prompt if custom_system_prompt else (
+                "Eres un asistente pragmatico que trabaja como empleado de un banco."
+                "Tu tarea es guiar a los usuarios en el proceso de solicitud de un préstamo."
+                "Para continuar con el proceso, necesitan subir dos documentos: una foto de su INE y un PDF de su estado de cuenta. "
+                "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero. "
+                "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
+                "Solamente existe un solo tipo de credito."
+                "Nunca asumas que el banco dara un credito, primero se deben de estudiar sus documentos."
+                "Responde de manera clara, concisa y profesional en español."
+            )
+            
+            response = self.client.chat(
+                model="llama3.1",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message}
+                ],
+                options= {
+                    "temperature": 0.5,
+                    'num_predict': 100
+                }
+            )
+            
+            return response['message']['content']
+        
+        except Exception as e:
+            logging.error(f"Error getting response from Ollama: {e}")
+            return "No se pudo generar una respuesta."
+    
+    def initial_greeting(self):
+        system_prompt = (
+            "Eres un asistente que trabaja como empleado del banco BanBajio. "
+            "El cliente acaba de entrar a una plática contigo y debes decirle 'buen día.'"
+            "Mencionale al cliente que estás aqui para ayudarle a llevar a cabo el primer paso para aplicar para un crédito empresarial."
+            "No agregues información adicional que no esté relacionada con la aplicación a un crédito."
+            "No des instrucciones, tu primer mensaje debe de ser de bienvenida y que puedes ayduar para aplicar para un crédito."
+            "No felicites al cliente. Tu personalidad es de un agente serio y profesional."
+            "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero."
+            "Si te dice que quiere una cantidad de dinero, menciona que lo primero es llevar a cabo el proceso de aplicación."
+            "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
+            "Solamente existe un solo tipo de credito."
+            "Responde de manera clara, concisa y profesional en español."
+            # "Manten tus mensajes en menos de 100 caracteres."
+        )
+        message = "Dale la bienvenida al cliente, menciona que estas aqui para ayudarle a aplicar a un crédito empresarial."
+        return self.get_responseV2(message, system_prompt)
+    
+
+    def initial_greeting_stream(self):
+        system_prompt = (
+            "Eres un asistente que trabaja como empleado del banco BanBajio. "
+            "El cliente acaba de entrar a una plática contigo y debes decirle 'buen día.'"
+            "Mencionale al cliente que estás aqui para ayudarle a llevar a cabo el primer paso para aplicar para un crédito empresarial."
+            "No agregues información adicional que no esté relacionada con la aplicación a un crédito."
+            "No des instrucciones, tu primer mensaje debe de ser de bienvenida y que puedes ayduar para aplicar para un crédito."
+            "No felicites al cliente. Tu personalidad es de un agente serio y profesional."
+            "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero."
+            "Si te dice que quiere una cantidad de dinero, menciona que lo primero es llevar a cabo el proceso de aplicación."
+            "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
+            "Solamente existe un solo tipo de credito."
+            "Responde de manera clara, concisa y profesional en español."
+            # "Manten tus mensajes en menos de 100 caracteres."
+        )
+        message = "Dale la bienvenida al cliente, menciona que estas aqui para ayudarle a aplicar a un crédito empresarial."
+        return self.get_streaming_response(message, system_prompt)
+    
+    def get_streaming_response(self, message, custom_system_prompt=None):
+        """
+        Returns a generator that yields streamed responses
+        """
+        try:
+            system_prompt = custom_system_prompt if custom_system_prompt else (
+                "Eres un asistente pragmatico que trabaja como empleado de un banco."
+                "Tu tarea es guiar a los usuarios en el proceso de solicitud de un préstamo."
+                "Para continuar con el proceso, necesitan subir dos documentos: una foto de su INE y un PDF de su estado de cuenta. "
+                "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero. "
+                "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
+                "Solamente existe un solo tipo de credito."
+                "Nunca asumas que el banco dara un credito, primero se deben de estudiar sus documentos."
+                "Responde de manera clara, concisa y profesional en español."
+            )
+            
+            response = self.client.chat(
+                model="llama3.1",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message}
+                ],
+                stream=True,
+                options={
+                    "temperature": 0.5,
+                    'num_predict': 100
+                }
+            )
+            
+            # Return a generator that yields each chunk
+            for chunk in response:
+                if 'message' in chunk and 'content' in chunk['message']:
+                    yield chunk['message']['content']
+        
+        except Exception as e:
+            logging.error(f"Error streaming response from Ollama: {e}")
+            yield "Error: No se pudo generar una respuesta."
+
+
+
+    # Add your other methods here

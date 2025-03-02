@@ -1,9 +1,11 @@
 from flask import request, current_app
 from flask_restful import Resource
 from services.ai_service import AIAgent
-from services.ai_service import LlamaAgent
+from services.ai_service import LlamaAgent, Ollama
 from services.localOCRService import OCRTextProcessor
 from services.file_tracker import FileTracker
+from flask import Response, stream_with_context
+import json
 
 class GreetUser(Resource):
     def post(self):
@@ -82,6 +84,46 @@ class InitialGreeting(Resource):
             current_app.logger.error(f"Error generating greeting: {str(e)}")
             return {'error': 'Failed to generate greeting'}, 500
         
+class InitialGreetingV2(Resource):
+    def post(self):
+        """
+        Endpoint to get an initial greeting from the AI agent
+        """
+        try:
+            data = request.get_json()
+            stream_mode = data.get('stream', False)  # Check if streaming is requested
+            
+            ollama_agent = Ollama()
+            
+            if stream_mode:
+                def generate():
+                    for chunk in ollama_agent.initial_greeting_stream():
+                        yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                
+                return Response(
+                    stream_with_context(generate()),
+                    mimetype='text/event-stream',
+                    headers={
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive',
+                        'Access-Control-Allow-Origin': '*'
+                    }
+                )
+            else:
+                # Original non-streaming behavior
+                greeting = ollama_agent.initial_greeting()
+                return {
+                    'message': 'Greeting generated successfully',
+                    'data': {
+                        'greeting': greeting
+                    }
+                }, 201
+                
+        except Exception as e:
+            return {'error': str(e)}, 500
+        
+
+
 class UploadFile(Resource):
     def post(self):
         """
@@ -105,7 +147,7 @@ class UploadFile(Resource):
                 print("First Names:", result)
                 FileTracker.set_pdf()
                 llama_agent = LlamaAgent()
-                status_message = llama_agent.generate_file_status_message()
+                status_message = llama_agent.generate_file_status_message(result)
                 
                 return {
                     'message': 'PDF file uploaded successfully',
@@ -121,7 +163,7 @@ class UploadFile(Resource):
                 FileTracker.set_jpg()
 
                 llama_agent = LlamaAgent()
-                status_message = llama_agent.generate_file_status_message()
+                status_message = llama_agent.generate_file_status_message(result.get('first_names'))
                 
                 return {
                     'message': 'PDF file uploaded successfully',
