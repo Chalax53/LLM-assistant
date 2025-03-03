@@ -155,7 +155,7 @@ class LlamaAgent:
 
 
 class Ollama:
-    def __init__(self, host="http://localhost:11434", temperature=0.5):
+    def __init__(self, host="http://localhost:11434", temperature=0.1):
         self.client = Client(host=host)
         self.temperature = temperature
         
@@ -228,21 +228,29 @@ class Ollama:
         print("SYSTEM PROMPT")
         print(custom_system_prompt)
         print("=============================================================================")
+        print("USER MESSAGE")
+        print(message)
+        print("=============================================================================")
         """
         Returns a generator that yields streamed responses
         """
         try:
             system_prompt = custom_system_prompt if custom_system_prompt else (
-                "Eres un asistente pragmatico que trabaja como empleado de un banco."
-                "Tu tarea es guiar a los usuarios en el proceso de solicitud de un préstamo."
-                "Para continuar con el proceso, necesitan subir dos documentos: una foto de su INE y un PDF de su estado de cuenta. "
-                "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero. "
-                "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información."
-                "Solamente existe un solo tipo de credito."
-                "Nunca asumas que el banco dara un credito, primero se deben de estudiar sus documentos."
+                "Eres un asistente pragmatico que trabaja como empleado de un banco.\n"
+                "Tu tarea es guiar a los usuarios en el proceso de solicitud de un préstamo.\n"
+                "Menciona que se debe subir una foto de su INE y estado de cuenta.\n"
+                "No pidas documentos adicionales.\n"
+                "No hables sobre evaluar su dinero.\n"
+                "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero.\n"
+                "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información.\n"
+                "Solamente existe un solo tipo de credito.\n"
+                "Nunca asumas que el banco dara un credito.\n"
+                "No preguntes si tiene alguna pregunta.\n"
                 "Responde de manera clara, concisa y profesional en español."
             )
-            
+            print("============================ PROMPT =====================")
+            print(system_prompt)
+            print("============================ PROMPT =====================")
             response = self.client.chat(
                 model="llama3.1",
                 messages=[
@@ -252,7 +260,7 @@ class Ollama:
                 stream=True,
                 options={
                     "temperature": self.temperature,
-                    'num_predict': 100
+                    'num_predict': 150
                 }
             )
             
@@ -292,13 +300,14 @@ class Ollama:
             system_prompt_base = (
                 "Eres un asistente que trabaja como empleado del banco BanBajio.\n"
                 "Tu trabajo es informarle al cliente sobre el estado de los documentos que ha subido para su solicitud.\n"
-                "Sé cordial, claro y específico sobre qué documentos se han recibido y cuáles faltan por subir.\n"
+                "Los documentos se suben por medio de ti.\n"
                 "No agregues información adicional que no esté relacionada con el estado de los documentos.\n"
                 "No des instrucciones de cómo subir los documentos.\n"
                 "No felicites al cliente. Tu personalidad es de un agente serio y profesional.\n"
                 "Si preguntan cuánto dinero le van a prestar, explícales que el banco debe revisar sus documentos primero.\n"
                 "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información.\n"
                 "Solamente existe un solo tipo de credito.\n"
+                "No menciones nada sobre la situacion fiscal del cliente.\n"
                 "Responde de manera clara, concisa y profesional en español."
             )
 
@@ -311,7 +320,8 @@ class Ollama:
                 system_prompt = (
                     f"{system_prompt_base}\n"
                     "Eres un asistente que trabaja como empleado del banco BanBajio.\n"
-                    f"El {client_name} cliente ha subido ambos documentos requeridos.\n"
+                    f"El cliente ha subido ambos documentos requeridos.\n"
+                    "Usa su nombre para dirigirte a el.\n"
                     "Menciona que su solicitud está completa y lista para ser revizada por un experto de nuestro equipo.\n"
                     "Mencionale que un representante del banco se pondra en contacto con el pronto.\n"
                 )
@@ -319,8 +329,9 @@ class Ollama:
             elif has_jpg:
                 system_prompt = (
                     f"{system_prompt_base}\n"
-                    f"El {client_name} cliente ha subido su identificación.\n" 
-                    "Menciona que solo falta subir su estado de cuenta para completar su solicitud."
+                    f"El cliente {client_name} ha subido su identificación.\n"
+                    "Usa su nombre para dirigirte a el.\n"
+                    "Menciona que el siguiente paso es subir su estado de cuenta."
                 )
 
             elif has_pdf:

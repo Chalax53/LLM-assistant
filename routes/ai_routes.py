@@ -206,3 +206,40 @@ class UploadFileStream(Resource):
     ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg'}
     def allowed_file(self, filename):
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
+    
+
+
+class ChatWithLlamaStream(Resource):
+    def post(self):
+        try:
+            data = request.get_json()
+            if not data or 'message' not in data:
+                return {'error': 'Message is required'}, 400
+                
+            message = data.get('message')
+            
+            ollama = Ollama()
+            
+            # Check if get_response returns a generator
+            response_generator = ollama.get_response_stream(message)
+            
+            # Convert generator to a string if it's a generator
+            if hasattr(response_generator, '__iter__') and not isinstance(response_generator, (str, list, dict)):
+                response = "".join(chunk for chunk in response_generator)
+            else:
+                # If it's already a string or other serializable type, use it directly
+                response = response_generator
+            
+            status_message = None
+
+            return {
+                'message': 'Response generated successfully',
+                'data': {
+                    'response': response,
+                    'status_update': status_message
+                }
+            }, 200
+            
+        except Exception as e:
+            current_app.logger.error(f"Error in ChatWithLlamaStream: {str(e)}")
+            return {'error': f'Failed to generate response: {str(e)}'}, 500
