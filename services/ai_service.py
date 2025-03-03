@@ -288,7 +288,7 @@ class Ollama:
             """
             Generate a specific message about the current file upload status
             """
-
+            
             system_prompt_base = (
                 "Eres un asistente que trabaja como empleado del banco BanBajio.\n"
                 "Tu trabajo es informarle al cliente sobre el estado de los documentos que ha subido para su solicitud.\n"

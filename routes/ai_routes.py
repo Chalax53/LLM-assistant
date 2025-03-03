@@ -160,13 +160,17 @@ class UploadFileStream(Resource):
             if not self.allowed_file(file.filename):
                 return {'error': 'Invalid file type. Only PDF and JPG are allowed'}, 400
             
+            # Create the Ollama agent once
+            llama_agent = Ollama()
 
             if file.filename.lower().endswith('.pdf'):
                 result = OCRTextProcessor.extract_name_from_EdoCta(file)
                 print("First Names:", result)
                 FileTracker.set_pdf()
-                llama_agent = Ollama()
-                status_message = llama_agent.generate_file_status_message_stream(result)
+                
+                # Convert generator to a list of messages for the response
+                status_generator = llama_agent.generate_file_status_message_stream(result)
+                status_message = "".join(chunk for chunk in status_generator)
                 
                 return {
                     'message': 'PDF file uploaded successfully',
@@ -180,12 +184,13 @@ class UploadFileStream(Resource):
                 result = OCRTextProcessor.extractIDData(file)
                 print(result.get('first_names'))
                 FileTracker.set_jpg()
-
-                llama_agent = Ollama()
-                status_message = llama_agent.generate_file_status_message_stream(result.get('first_names'))
+                
+                # Convert generator to a list of messages for the response
+                status_generator = llama_agent.generate_file_status_message_stream(result.get('first_names'))
+                status_message = "".join(chunk for chunk in status_generator)
                 
                 return {
-                    'message': 'PDF file uploaded successfully',
+                    'message': 'JPG file uploaded successfully',  # Fixed message for JPG uploads
                     'data': {
                         'extracted_names': result,
                         'status': status_message
@@ -196,7 +201,7 @@ class UploadFileStream(Resource):
             
         except Exception as e:
             current_app.logger.error(f"Error generating response: {str(e)}")
-            return {'error': 'Failed to generate response'}, 500
+            return {'error': f'Failed to generate response: {str(e)}'}, 500
         
     ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg'}
     def allowed_file(self, filename):
