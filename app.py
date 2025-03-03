@@ -2,7 +2,7 @@ from flask import Flask
 from flask_restful import Api
 import os
 from routes.id_routes import GetAllRecords, ParseIDPhoto, ParseEdoCtaPDF
-from routes.ai_routes import ChatWithLlama, InitialGreeting, UploadFile, InitialGreetingV2
+from routes.ai_routes import ChatWithLlama, UploadFile, InitialGreetingV2, UploadFileStream
 from config.database import DatabaseConnection
 
 def create_app():
@@ -17,9 +17,9 @@ def create_app():
         db.close()
 
     api.add_resource(ChatWithLlama, "/chat")
-    api.add_resource(InitialGreeting, "/ai-greet")
     api.add_resource(InitialGreetingV2, "/initial-greeting")
     api.add_resource(UploadFile, "/upload-file")
+    api.add_resource(UploadFileStream, "/upload-file-stream")
 
     return app
 

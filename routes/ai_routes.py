@@ -1,32 +1,11 @@
 from flask import request, current_app
 from flask_restful import Resource
-from services.ai_service import AIAgent
 from services.ai_service import LlamaAgent, Ollama
 from services.localOCRService import OCRTextProcessor
 from services.file_tracker import FileTracker
 from flask import Response, stream_with_context
 import json
 
-class GreetUser(Resource):
-    def post(self):
-        """
-        Endpoint to greet a user using AI Agent
-        """
-
-        try:    
-            ai_service = AIAgent()
-            greeting = ai_service.initial_greeting()
-            
-            return {
-                'message': 'Greeting generated successfully',
-                'data': {
-                    'greeting': greeting
-                }
-            }, 201
-            
-        except Exception as e:
-            current_app.logger.error(f"Error generating greeting: {str(e)}")
-            return {'error': 'Failed to generate greeting'}, 500
 
 
 class ChatWithLlama(Resource):
@@ -64,25 +43,6 @@ class ChatWithLlama(Resource):
             return {'error': str(e)}, 500
         
 
-class InitialGreeting(Resource):
-    def post(self):
-        """
-        Endpoint to get an initial greeting from the AI agent
-        """
-        try:
-            llama_agent = LlamaAgent()
-            greeting = llama_agent.initial_greeting()
-            
-            return {
-                'message': 'Greeting generated successfully',
-                'data': {
-                    'greeting': greeting
-                }
-            }, 201
-            
-        except Exception as e:
-            current_app.logger.error(f"Error generating greeting: {str(e)}")
-            return {'error': 'Failed to generate greeting'}, 500
         
 class InitialGreetingV2(Resource):
     def post(self):
@@ -91,7 +51,7 @@ class InitialGreetingV2(Resource):
         """
         try:
             data = request.get_json()
-            stream_mode = data.get('stream', False)  # Check if streaming is requested
+            stream_mode = data.get('stream', False)
             
             ollama_agent = Ollama()
             
@@ -110,7 +70,6 @@ class InitialGreetingV2(Resource):
                     }
                 )
             else:
-                # Original non-streaming behavior
                 greeting = ollama_agent.initial_greeting()
                 return {
                     'message': 'Greeting generated successfully',
@@ -164,6 +123,66 @@ class UploadFile(Resource):
 
                 llama_agent = LlamaAgent()
                 status_message = llama_agent.generate_file_status_message(result.get('first_names'))
+                
+                return {
+                    'message': 'PDF file uploaded successfully',
+                    'data': {
+                        'extracted_names': result,
+                        'status': status_message
+                    }
+                }, 200
+
+            return {'message': 'File uploaded successfully'}, 200
+            
+        except Exception as e:
+            current_app.logger.error(f"Error generating response: {str(e)}")
+            return {'error': 'Failed to generate response'}, 500
+        
+    ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg'}
+    def allowed_file(self, filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
+    
+
+class UploadFileStream(Resource):
+    def post(self):
+        """
+        Endpoint that handles uploaded files
+        """
+        try:
+            if 'file' not in request.files:
+                return {'error': 'No file uploaded'}, 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return {'error': 'No selected file'}, 400
+
+            # Check file extension
+            if not self.allowed_file(file.filename):
+                return {'error': 'Invalid file type. Only PDF and JPG are allowed'}, 400
+            
+
+            if file.filename.lower().endswith('.pdf'):
+                result = OCRTextProcessor.extract_name_from_EdoCta(file)
+                print("First Names:", result)
+                FileTracker.set_pdf()
+                llama_agent = Ollama()
+                status_message = llama_agent.generate_file_status_message_stream(result)
+                
+                return {
+                    'message': 'PDF file uploaded successfully',
+                    'data': {
+                        'extracted_names': result,
+                        'status': status_message
+                    }
+                }, 200
+
+            elif file.filename.lower().endswith(('.jpg', '.jpeg')):
+                result = OCRTextProcessor.extractIDData(file)
+                print(result.get('first_names'))
+                FileTracker.set_jpg()
+
+                llama_agent = Ollama()
+                status_message = llama_agent.generate_file_status_message_stream(result.get('first_names'))
                 
                 return {
                     'message': 'PDF file uploaded successfully',
