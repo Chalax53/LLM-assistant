@@ -94,7 +94,7 @@ class OCRTextProcessor:
 
         if match:
             print(f"Found '{full_name}' in all caps in the PDF")
-            return True
+            return full_name
         else:
             # Try a more flexible search that accounts for potential OCR issues
             words = full_name.upper().split()
@@ -103,8 +103,8 @@ class OCRTextProcessor:
             
             if flexible_match:
                 print(f"Found '{full_name}' with some formatting variations in the PDF")
-                return True
+                return full_name
             else:
                 print(f"Could not find '{full_name}' in the PDF")
-                return False    
+                return "estimado"    
     

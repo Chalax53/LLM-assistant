@@ -236,7 +236,7 @@ class Ollama:
         """
         try:
             system_prompt = custom_system_prompt if custom_system_prompt else (
-                "Eres un asistente pragmatico que trabaja como empleado de un banco.\n"
+                "Eres un asistente que trabaja como empleado del banco BanBajio.\n"
                 "Tu tarea es guiar a los usuarios en el proceso de solicitud de un préstamo.\n"
                 "Menciona que se debe subir una foto de su INE y estado de cuenta.\n"
                 "No pidas documentos adicionales.\n"
@@ -276,7 +276,6 @@ class Ollama:
 
     def initial_greeting_stream(self):
         system_prompt = (
-            "Eres un asistente que trabaja como empleado del banco BanBajio. "
             "El cliente acaba de entrar a una plática contigo y debes decirle 'buen día.'"
             "Mencionale al cliente que estás aqui para ayudarle a llevar a cabo el primer paso para aplicar para un crédito empresarial."
             "No agregues información adicional que no esté relacionada con la aplicación a un crédito."
@@ -320,7 +319,7 @@ class Ollama:
                 system_prompt = (
                     f"{system_prompt_base}\n"
                     "Eres un asistente que trabaja como empleado del banco BanBajio.\n"
-                    f"El cliente ha subido ambos documentos requeridos.\n"
+                    f"El cliente {client_name} ha subido ambos documentos requeridos.\n"
                     "Usa su nombre para dirigirte a el.\n"
                     "Menciona que su solicitud está completa y lista para ser revizada por un experto de nuestro equipo.\n"
                     "Mencionale que un representante del banco se pondra en contacto con el pronto.\n"

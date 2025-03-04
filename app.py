@@ -4,9 +4,11 @@ import os
 from routes.id_routes import GetAllRecords, ParseIDPhoto, ParseEdoCtaPDF
 from routes.ai_routes import ChatWithLlama, UploadFile, InitialGreetingV2, UploadFileStream, ChatWithLlamaStream
 from config.database import DatabaseConnection
+from flask_cors import CORS
 
 def create_app():
     app = Flask(__name__)
+    CORS(app)
     api = Api(app)
     
     # Initialize DB connection

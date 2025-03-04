@@ -169,7 +169,7 @@ class UploadFileStream(Resource):
                 FileTracker.set_pdf()
                 
                 # Convert generator to a list of messages for the response
-                status_generator = llama_agent.generate_file_status_message_stream(result)
+                status_generator = llama_agent.generate_file_status_message_stream(client_name=result)
                 status_message = "".join(chunk for chunk in status_generator)
                 
                 return {
