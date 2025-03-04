@@ -248,7 +248,8 @@ class Ollama:
                 "Si piden hablar con un humano, convéncelos de que tu ayuda es la manera más rápida y eficiente de obtener información.\n"
                 "Si pregunta por la privacidad de sus documentos, menciona que lean nuestro aviso de privacidad.\n"
                 "Solamente existe un solo tipo de credito: credito empresarial.\n"
-                "Nunca asumas que el banco dara un credito.\n"
+                "Nunca menciones cantidad de préstamo.\n"
+                "Si preguntan cuanto dinero le van a prestar, menciona que primero hay que aplicar.\n"
                 "No preguntes si tiene alguna pregunta.\n"
                 "Responde de manera clara, concisa y profesional en español."
             )
