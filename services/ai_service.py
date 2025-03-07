@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from services.file_tracker import FileTracker
 from ollama import Client
+from services.ollama_manager import OllamaClient
 import logging
 
 
@@ -8,7 +9,8 @@ load_dotenv()
 
 class Ollama:
     def __init__(self, host="http://localhost:11434", temperature=0.1):
-        self.client = Client(host=host)
+        self.client_manager = OllamaClient(host=host)
+        self.client = self.client_manager.get_client()
         self.temperature = temperature
         
     # =============================================================================
