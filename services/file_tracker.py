@@ -1,5 +1,6 @@
 
 class FileTracker:
+    """ Used to know which documents have been uploaded by user. """
     has_jpg_file = False
     has_pdf_file = False
     

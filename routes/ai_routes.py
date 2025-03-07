@@ -1,47 +1,10 @@
 from flask import request, current_app
 from flask_restful import Resource
-from services.ai_service import LlamaAgent, Ollama
+from services.ai_service import Ollama
 from services.localOCRService import OCRTextProcessor
 from services.file_tracker import FileTracker
 from flask import Response, stream_with_context
 import json
-
-
-
-class ChatWithLlama(Resource):
-    def post(self):
-        try:
-            data = request.get_json()
-            if not data or 'message' not in data:
-                return {'error': 'Message is required'}, 400
-                
-            message = data.get('message')
-            
-            llama_agent = LlamaAgent()
-
-            # Check if file status might be relevant to this message
-            # status_relevant = any(keyword in message.lower() for keyword in 
-            #                     ['status', 'document', 'archivo', 'documento', 
-            #                      'subir', 'upload', 'ine', 'pdf', 'jpg', 
-            #                      'estado'])
-            
-            response = llama_agent.get_response(message)
-            
-            status_message = None
-            # if status_relevant:
-            #    status_message = llama_agent.generate_file_status_message()
-
-            return {
-                'message': 'Response generated successfully',
-                'data': {
-                    'response': response,
-                    'status_update': status_message
-                }
-            }, 200
-            
-        except Exception as e:
-            return {'error': str(e)}, 500
-        
 
         
 class InitialGreetingV2(Resource):
@@ -80,67 +43,7 @@ class InitialGreetingV2(Resource):
                 
         except Exception as e:
             return {'error': str(e)}, 500
-        
 
-
-class UploadFile(Resource):
-    def post(self):
-        """
-        Endpoint that handles uploaded files
-        """
-        try:
-            if 'file' not in request.files:
-                return {'error': 'No file uploaded'}, 400
-
-            file = request.files['file']
-            if file.filename == '':
-                return {'error': 'No selected file'}, 400
-
-            # Check file extension
-            if not self.allowed_file(file.filename):
-                return {'error': 'Invalid file type. Only PDF and JPG are allowed'}, 400
-            
-
-            if file.filename.lower().endswith('.pdf'):
-                result = OCRTextProcessor.extract_name_from_EdoCta(file)
-                print("First Names:", result)
-                FileTracker.set_pdf()
-                llama_agent = LlamaAgent()
-                status_message = llama_agent.generate_file_status_message(result)
-                
-                return {
-                    'message': 'PDF file uploaded successfully',
-                    'data': {
-                        'extracted_names': result,
-                        'status': status_message
-                    }
-                }, 200
-
-            elif file.filename.lower().endswith(('.jpg', '.jpeg')):
-                result = OCRTextProcessor.extractIDData(file)
-                print(result.get('first_names'))
-                FileTracker.set_jpg()
-
-                llama_agent = LlamaAgent()
-                status_message = llama_agent.generate_file_status_message(result.get('first_names'))
-                
-                return {
-                    'message': 'PDF file uploaded successfully',
-                    'data': {
-                        'extracted_names': result,
-                        'status': status_message
-                    }
-                }, 200
-
-            return {'message': 'File uploaded successfully'}, 200
-            
-        except Exception as e:
-            current_app.logger.error(f"Error generating response: {str(e)}")
-            return {'error': 'Failed to generate response'}, 500
-        
-    ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg'}
-    def allowed_file(self, filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
     
 
 class UploadFileStream(Resource):
@@ -156,11 +59,9 @@ class UploadFileStream(Resource):
             if file.filename == '':
                 return {'error': 'No selected file'}, 400
 
-            # Check file extension
             if not self.allowed_file(file.filename):
                 return {'error': 'Invalid file type. Only PDF and JPG are allowed'}, 400
             
-            # Create the Ollama agent once
             llama_agent = Ollama()
 
             if file.filename.lower().endswith('.pdf'):
@@ -168,7 +69,6 @@ class UploadFileStream(Resource):
                 print("First Names:", result)
                 FileTracker.set_pdf()
                 
-                # Convert generator to a list of messages for the response
                 status_generator = llama_agent.generate_file_status_message_stream(client_name=result)
                 status_message = "".join(chunk for chunk in status_generator)
                 
@@ -185,12 +85,11 @@ class UploadFileStream(Resource):
                 print(result.get('first_names'))
                 FileTracker.set_jpg()
                 
-                # Convert generator to a list of messages for the response
                 status_generator = llama_agent.generate_file_status_message_stream(result.get('first_names'))
                 status_message = "".join(chunk for chunk in status_generator)
                 
                 return {
-                    'message': 'JPG file uploaded successfully',  # Fixed message for JPG uploads
+                    'message': 'JPG file uploaded successfully',
                     'data': {
                         'extracted_names': result,
                         'status': status_message
@@ -219,15 +118,11 @@ class ChatWithLlamaStream(Resource):
             message = data.get('message')
             
             ollama = Ollama()
-            
-            # Check if get_response returns a generator
             response_generator = ollama.get_response_stream(message)
             
-            # Convert generator to a string if it's a generator
             if hasattr(response_generator, '__iter__') and not isinstance(response_generator, (str, list, dict)):
                 response = "".join(chunk for chunk in response_generator)
             else:
-                # If it's already a string or other serializable type, use it directly
                 response = response_generator
             
             status_message = None

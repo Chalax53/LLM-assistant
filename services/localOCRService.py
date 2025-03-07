@@ -13,12 +13,10 @@ class OCRTextProcessor:
         with open(path, 'r') as f:
             return [line.strip().upper() for line in f if line.strip()]
         
-    #
-    # Uses OCR to read data from ID Photo in jpeg or jpg format.
-    #
     @staticmethod
     def extractIDData(image_file):
-        """ Locally extracts all words from ID photo, stores relevant info in local DB """
+        """ Locally extracts all words from ID photo, stores relevant info in local DB 
+        Uses OCR to read data from ID Photo in jpeg or jpg format."""
         try:
             firstNames = OCRTextProcessor.load_names_from_file('firsts.txt')
             lastNames = OCRTextProcessor.load_names_from_file('lasts.txt')
@@ -30,12 +28,8 @@ class OCRTextProcessor:
             # SPOT DOMICILIO
             domicilio_idx = next((i for i, line in enumerate(lines) if "DOMICILIO" in line), -1)
 
-            #TODO: handle when DOMICILIO isn't found
-
             if domicilio_idx != -1:
-                # Everything before DOMICILIO could be names
                 name_section = ' '.join(lines[:domicilio_idx])
-                # Everything after is address
                 address_section = ' '.join(lines[domicilio_idx+1:domicilio_idx+3])
                 
                 name_words = name_section.split()
@@ -44,12 +38,10 @@ class OCRTextProcessor:
                 found_last_names = " ".join([word for word in name_words if word in lastNames])
 
                 clean_text = "\n".join(lines)
-                print(clean_text) # <- FOR TESTING PURPOSES. Prints all that is parsed
 
                 full_name = f"{found_first_name} {found_last_names}".strip()
                 
                 #create idRecord object, populate it and store it in db.
-                #TODO: Create a repository to handle DB interactions.
                 # idRecord = IDRecord(
                 #     full_name=full_name,
                 #     address=address_section
@@ -59,8 +51,6 @@ class OCRTextProcessor:
                 return {
                     "first_names": found_first_name,
                     "last_names": found_last_names,
-                    "address": address_section, # <- FOR TESTING PURPOSES. DELETE FOR DEMO.
-                    "text": clean_text # <- FOR TESTING PURPOSES. DELETE FOR DEMO.
                 }
 
         except Exception as e:
@@ -68,20 +58,17 @@ class OCRTextProcessor:
             return {"error": str(e)}
             
 
-    #
-    # Uses pdfplumber to read data from Estado de Cuenta in PDF format.
-    # checks if the last entry on the names database is found in the PDF.
-    #
-    # Returns boolean
-    #
-    def extract_name_from_EdoCta(file):
 
-        # Pull last name added to DB
+    def extract_name_from_EdoCta(file):
+        """
+        Uses pdfplumber to read data from Estado de Cuenta in PDF format.
+        checks if the last entry on the names database is found in the PDF.
+        Returns full name found in pdf
+        """
         idRecord = IDRecord()
         last_entry = idRecord.get_last_entry()
         full_name = last_entry['full_name']
 
-        # Read text from PDF
         with pdfplumber.open(file) as pdf:
             text = ""
             for page in pdf.pages:
@@ -96,7 +83,6 @@ class OCRTextProcessor:
             print(f"Found '{full_name}' in all caps in the PDF")
             return full_name
         else:
-            # Try a more flexible search that accounts for potential OCR issues
             words = full_name.upper().split()
             flexible_pattern = r'\s*'.join([r'\b' + re.escape(word) + r'\b' for word in words])
             flexible_match = re.search(flexible_pattern, text)
