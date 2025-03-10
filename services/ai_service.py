@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 from services.file_tracker import FileTracker
-from ollama import Client
 from services.ollama_manager import OllamaClient
 import logging
 

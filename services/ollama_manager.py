@@ -1,6 +1,5 @@
 import logging
 import threading
-import time
 from ollama import Client
 
 # Singleton OllamaClient to maintain a persistent connection
