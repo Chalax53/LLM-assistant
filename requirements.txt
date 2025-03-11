@@ -2,6 +2,7 @@ mysql-connector-python
 python-dotenv
 OpenAI
 flask
+flask_cors
 Flask-RESTful
 Pillow
 pytesseract
