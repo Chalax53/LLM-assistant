@@ -2,12 +2,15 @@ from dotenv import load_dotenv
 from services.file_tracker import FileTracker
 from services.ollama_manager import OllamaClient
 import logging
+import os
 
+load_dotenv()
 
-load_dotenv()  
+cloud_llm = os.getenv("CLOUD_LLM")
 
 class Ollama:
-    def __init__(self, host="http://localhost:11434", temperature=0.1):
+    
+    def __init__(self, host=cloud_llm, temperature=0.1):
         self.client_manager = OllamaClient(host=host)
         self.client = self.client_manager.get_client()
         self.temperature = temperature

@@ -43,30 +43,3 @@ class IDRecord:
         except Error as e:
             print(f"Error retrieving last entry: {e}")
             return None
-
-
-    # @staticmethod
-    # def get_by_id(record_id):
-    #     try:
-    #         db = DatabaseConnection()
-    #         cursor = db.connect_with_connector().cursor(dictionary=True)
-            
-    #         query = "SELECT * FROM id_records WHERE record_id = %s"
-    #         cursor.execute(query, (record_id,))
-            
-    #         return cursor.fetchone()
-    #     except Error as e:
-    #         print(f"Error retrieving record: {e}")
-    #         return None
-
-    # @staticmethod
-    # def get_all():
-    #     try:
-    #         db = DatabaseConnection()
-    #         cursor = db.get_connection().cursor(dictionary=True)
-            
-    #         cursor.execute("SELECT * FROM id_records")
-    #         return cursor.fetchall()
-    #     except Error as e:
-    #         print(f"Error retrieving records: {e}")
-    #         return []
