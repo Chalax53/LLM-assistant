@@ -55,14 +55,13 @@ class DatabaseConnection:
         # Cloud Secret Manager (https://cloud.google.com/secret-manager) to help
         # keep secrets safe.
 
-        instance_connection_name = os.environ[
-            "INSTANCE_CONNECTION_NAME"
-        ]  # e.g. 'project:region:instance'
-        db_user = os.environ["DB_USER"]  # e.g. 'my-db-user'
-        db_pass = os.environ["DB_PASSWORD"]  # e.g. 'my-db-password'
-        db_name = os.environ["DB_NAME"]  # e.g. 'my-database'
+        instance_connection_name = os.getenv("INSTANCE_CONNECTION_NAME")
+            
+        db_user = os.getenv("DB_USER")  # e.g. 'my-db-user'
+        db_pass = os.getenv("DB_PASSWORD")  # e.g. 'my-db-password'
+        db_name = os.getenv("DB_NAME")  # e.g. 'my-database'
 
-        ip_type = IPTypes.PRIVATE if os.environ.get("USE_PRIVATE_IP") else IPTypes.PUBLIC
+        ip_type = IPTypes.PRIVATE if os.getenv("USE_PRIVATE_IP") else IPTypes.PUBLIC
 
         # initialize Cloud SQL Python Connector object
         connector = Connector(ip_type=ip_type, refresh_strategy="LAZY")
