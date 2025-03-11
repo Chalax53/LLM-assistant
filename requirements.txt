@@ -8,3 +8,4 @@ pytesseract
 ollama
 cloud-sql-python-connector[pymysql]
 sqlalchemy
+pdfplumber
