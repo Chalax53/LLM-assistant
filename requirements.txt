@@ -6,3 +6,5 @@ Flask-RESTful
 Pillow
 pytesseract
 ollama
+cloud-sql-python-connector[pymysql]
+sqlalchemy

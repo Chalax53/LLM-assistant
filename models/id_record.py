@@ -1,6 +1,7 @@
 from config.database import DatabaseConnection
 from mysql.connector import Error
 
+
 class IDRecord:
     def __init__(self, full_name=None, address=None):
         self.full_name = full_name
@@ -9,7 +10,7 @@ class IDRecord:
 
     def save(self):
         try:
-            connection = self.db.get_connection()
+            connection = DatabaseConnection.connect_with_connector()
             cursor = connection.cursor()
             
             query = """
@@ -22,12 +23,12 @@ class IDRecord:
             connection.commit()
             return cursor.lastrowid
         except Error as e:
-            print(f"Error saving record: {e}")
+            print(f"Error saving record in id_record: {e}")
             return None
 
     def get_last_entry(self):
         try:
-            connection = self.db.get_connection()
+            connection = DatabaseConnection.connect_with_connector()
             cursor = connection.cursor(dictionary=True)
 
             query = """
@@ -44,28 +45,28 @@ class IDRecord:
             return None
 
 
-    @staticmethod
-    def get_by_id(record_id):
-        try:
-            db = DatabaseConnection()
-            cursor = db.get_connection().cursor(dictionary=True)
+    # @staticmethod
+    # def get_by_id(record_id):
+    #     try:
+    #         db = DatabaseConnection()
+    #         cursor = db.connect_with_connector().cursor(dictionary=True)
             
-            query = "SELECT * FROM id_records WHERE record_id = %s"
-            cursor.execute(query, (record_id,))
+    #         query = "SELECT * FROM id_records WHERE record_id = %s"
+    #         cursor.execute(query, (record_id,))
             
-            return cursor.fetchone()
-        except Error as e:
-            print(f"Error retrieving record: {e}")
-            return None
+    #         return cursor.fetchone()
+    #     except Error as e:
+    #         print(f"Error retrieving record: {e}")
+    #         return None
 
-    @staticmethod
-    def get_all():
-        try:
-            db = DatabaseConnection()
-            cursor = db.get_connection().cursor(dictionary=True)
+    # @staticmethod
+    # def get_all():
+    #     try:
+    #         db = DatabaseConnection()
+    #         cursor = db.get_connection().cursor(dictionary=True)
             
-            cursor.execute("SELECT * FROM id_records")
-            return cursor.fetchall()
-        except Error as e:
-            print(f"Error retrieving records: {e}")
-            return []
+    #         cursor.execute("SELECT * FROM id_records")
+    #         return cursor.fetchall()
+    #     except Error as e:
+    #         print(f"Error retrieving records: {e}")
+    #         return []

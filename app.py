@@ -11,10 +11,6 @@ def create_app():
     
     # Initialize DB connection
     db = DatabaseConnection()
-    
-    @app.teardown_appcontext
-    def cleanup(exception=None):
-        db.close()
 
     api.add_resource(InitialGreetingV2, "/initial-greeting")
     api.add_resource(UploadFileStream, "/upload-file-stream")
