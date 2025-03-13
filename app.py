@@ -9,7 +9,6 @@ def create_app():
     CORS(app)
     api = Api(app)
     
-    # Initialize DB connection
     db = DatabaseConnection()
 
     api.add_resource(InitialGreetingV2, "/initial-greeting")

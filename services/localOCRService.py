@@ -4,7 +4,6 @@ from pathlib import Path
 import pdfplumber
 import re
 from models.id_record import IDRecord
-from config.database import DatabaseConnection
 
 class OCRTextProcessor:
     @staticmethod
@@ -41,7 +40,6 @@ class OCRTextProcessor:
 
                 full_name = f"{found_first_name} {found_last_names}".strip()
                 
-                #create idRecord object, populate it and store it in db.
                 idRecord = IDRecord(
                     full_name=full_name,
                     address=address_section

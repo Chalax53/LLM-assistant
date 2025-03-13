@@ -2,7 +2,6 @@ import logging
 import threading
 from ollama import Client
 
-# Singleton OllamaClient to maintain a persistent connection
 class OllamaClient:
     _instance = None
     _lock = threading.Lock()
